@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """ This is the starter code for the robot localization project """
 
 import rospy
