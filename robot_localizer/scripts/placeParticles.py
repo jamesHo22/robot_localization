@@ -54,7 +54,7 @@ class placeParticles():
         self.yCoords = np.random.normal(self.yCenter, size = self.n)
         
         for i in range(self.n):
-            particle = pf.Particle(x=self.xCoords[i], y=self.yCoords[i],theta = np.random.normal(math.pi,scale=2*math.pi))
+            particle = pf.Particle(x=self.xCoords[i], y=self.yCoords[i],theta = np.random.normal(theta, scale=0.8))
             self.particles.append(particle)
         # print(self.particles)
         return self.particles
