@@ -4,6 +4,7 @@
 
 import math, rospy
 from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
 from tf.transformations import euler_from_quaternion
 
 def create_marker(frame, ns, posx, posy, posz=0, mtype=Marker.SPHERE, \
