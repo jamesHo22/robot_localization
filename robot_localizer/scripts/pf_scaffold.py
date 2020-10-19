@@ -26,6 +26,8 @@ from sklearn.neighbors import NearestNeighbors
 from occupancy_field import OccupancyField
 from helper_functions import TFHelper
 
+from occupancy_field import OccupancyField
+
 class Particle(object):
     """ Represents a hypothesis (particle) of the robot's pose consisting of x,y and theta (yaw)
         Attributes:
@@ -77,12 +79,19 @@ class ParticleFilter:
     """
     def __init__(self):
         self.initialized = False        # make sure we don't perform updates before everything is setup
-        rospy.init_node('pf')           # tell roscore that we are creating a new node named "pf"
+        rospy.init_node('mypf')           # tell roscore that we are creating a new node named "pf"
 
         self.base_frame = "base_link"   # the frame of the robot base
         self.map_frame = "map"          # the name of the map coordinate frame
         self.odom_frame = "odom"        # the name of the odometry coordinate frame
         self.scan_topic = "scan"        # the topic where we will get laser scans from 
+
+         # enable listening for and broadcasting coordinate transforms
+        self.tf_listener = TransformListener()
+        self.tf_broadcaster = TransformBroadcaster()
+
+        self.occupancy_field = OccupancyField()
+
 
         self.n_particles = 300         # the number of particles to use
 
@@ -103,11 +112,7 @@ class ParticleFilter:
 
         # laser_subscriber listens for data from the lidar
         rospy.Subscriber(self.scan_topic, LaserScan, self.scan_received)
-
-        # enable listening for and broadcasting coordinate transforms
-        self.tf_listener = TransformListener()
-        self.tf_broadcaster = TransformBroadcaster()
-
+        
         self.particle_cloud = []
 
         # change use_projected_stable_scan to True to use point clouds instead of laser scans
@@ -122,6 +127,7 @@ class ParticleFilter:
         self.transform_helper = TFHelper()
         self.initialized = True
         print("Init")
+
 
     def update_robot_pose(self, timestamp):
         """ Update the estimate of the robot's pose given the updated particles.
@@ -172,6 +178,17 @@ class ParticleFilter:
         # TODO: nothing unless you want to try this alternate likelihood model
         pass
 
+
+    def weight_particles(self, x, y, a):
+        # grad all the lidar points
+        # translate and rotate them to each particle
+        # evaluate the occupancy field for each lidar point for each particle
+        # Sum and normalize all the weights
+        # return array of weights for each particle
+        print("Weight particles")
+        print(self.occupancy_field.get_closest_obstacle_distance(x, y))
+
+
     def resample_particles(self):
         """ Resample the particles according to the new particle weights.
             The weights stored with each particle should define the probability that a particular
@@ -209,6 +226,7 @@ class ParticleFilter:
         print("Updating")
 
         xy_theta = self.transform_helper.convert_pose_to_xy_and_theta(msg.pose.pose) # convert the pose of the inital guess arrow to xy_theta
+        self.weight_particles(*xy_theta)
         myCloud = pp.placeParticles() # create placeParticles object
         self.particle_cloud = myCloud.createRandomXYs(*xy_theta, self.n_particles) # create the n particles centered around xy_theta
         self.publish_particles("publishing")
@@ -241,7 +259,7 @@ class ParticleFilter:
         # actually send the message so that we can view it in rviz
         
         self.particle_pub.publish(PoseArray(header=Header(stamp=rospy.Time.now(),
-                                            frame_id=self.map_frame),
+                                            frame_id=self.odom_frame),
                                   poses=particles_conv))
 
     def scan_received(self, msg):
@@ -249,23 +267,29 @@ class ParticleFilter:
             Feel free to modify this, however, we hope it will provide a good
             guide.  The input msg is an object of type sensor_msgs/LaserScan """
 
+        
+        
+        
         if not(self.initialized):
             # wait for initialization to complete
             return
+
+        self.tf_listener.waitForTransform(self.base_frame, self.odom_frame, msg.header.stamp, rospy.Duration(0.5))
 
         if not(self.tf_listener.canTransform(self.base_frame, msg.header.frame_id, msg.header.stamp)):
             # need to know how to transform the laser to the base frame
             # this will be given by either Gazebo or neato_node
             print("If 2")
             return
+
         if not(self.tf_listener.canTransform(self.base_frame, self.odom_frame, msg.header.stamp)):
+            # print("odom: ", self.tf_listener.frameExists(self.odom_frame), "base: ", self.tf_listener.frameExists(self.base_frame))
+            # print("list of frames: ", self.tf_listener.getFrameStrings())
             # need to know how to transform between base and odometric frames
             # this will eventually be published by either Gazebo or neato_node
             print("if 3")
             return
-            
-        
-        
+
         # calculate pose of laser relative to the robot base
         p = PoseStamped(header=Header(stamp=rospy.Time(0),
                                       frame_id=msg.header.frame_id))
@@ -283,52 +307,56 @@ class ParticleFilter:
         dx = delta[0] #+ np.random.normal(delta[0], scale=1)
         dy = delta[1] #+  np.random.normal(delta[1], scale=1)
         da = delta[2] #+  np.random.normal(delta[2], scale=0.8)  # update based on odometry, returns the delta to move the particles
-        print(delta)
-        # for i in range(len(self.particle_cloud)):
-        #     self.particle_cloud[i].x += dx
-        #     self.particle_cloud[i].y += dy
-        #     self.particle_cloud[i].theta += da
+        # print(delta)
+        for i in range(len(self.particle_cloud)):
+            self.particle_cloud[i].x += dx + np.random.normal(0, 0.1)
+            self.particle_cloud[i].y += dy + np.random.normal(0, 0.1)
+            self.particle_cloud[i].theta += da + np.random.normal(0, 0.1)
         
         if not self.current_odom_xy_theta:
             self.current_odom_xy_theta = new_odom_xy_theta
+            print("currentodom")
             return
             
 
         if not(self.particle_cloud):
             # now that we have all of the necessary transforms we can update the particle cloud
+            print("no cloud")
             self.initialize_particle_cloud(msg.header.stamp)
 
         
-        elif (math.fabs(new_odom_xy_theta[0] - self.current_odom_xy_theta[0]) > self.d_thresh or
-              math.fabs(new_odom_xy_theta[1] - self.current_odom_xy_theta[1]) > self.d_thresh or
-              math.fabs(new_odom_xy_theta[2] - self.current_odom_xy_theta[2]) > self.a_thresh):
-            print("elif passed")
-            # we have moved far enough to do an update!
-            # print("elif goes off")
-            # delta = self.update_particles_with_odom(msg)
-            # dx = delta[0] + np.random.normal(delta[0], scale=1)
-            # dy = delta[1] +  np.random.normal(delta[1], scale=1)
-            # da = delta[2] +  np.random.normal(delta[2], scale=0.8)  # update based on odometry, returns the delta to move the particles
+        
+        # elif (math.fabs(new_odom_xy_theta[0] - self.current_odom_xy_theta[0]) > self.d_thresh or
+        #       math.fabs(new_odom_xy_theta[1] - self.current_odom_xy_theta[1]) > self.d_thresh or
+        #       math.fabs(new_odom_xy_theta[2] - self.current_odom_xy_theta[2]) > self.a_thresh):
+        #     print("elif passed")
+        #     # we have moved far enough to do an update!
+        #     # print("elif goes off")
+        #     # delta = self.update_particles_with_odom(msg)
+        #     # dx = delta[0] + np.random.normal(delta[0], scale=1)
+        #     # dy = delta[1] +  np.random.normal(delta[1], scale=1)
+        #     # da = delta[2] +  np.random.normal(delta[2], scale=0.8)  # update based on odometry, returns the delta to move the particles
             
-            # for i in range(len(self.particle_cloud)):
-            #     self.particle_cloud[i].x += dx
-            #     self.particle_cloud[i].y += dy
-            #     self.particle_cloud[i].theta += da
+        #     # for i in range(len(self.particle_cloud)):
+        #     #     self.particle_cloud[i].x += dx
+        #     #     self.particle_cloud[i].y += dy
+        #     #     self.particle_cloud[i].theta += da
             
-            if self.last_projected_stable_scan:
-                last_projected_scan_timeshift = deepcopy(self.last_projected_stable_scan)
-                last_projected_scan_timeshift.header.stamp = msg.header.stamp
-                self.scan_in_base_link = self.tf_listener.transformPointCloud("base_link", last_projected_scan_timeshift)
+        #     if self.last_projected_stable_scan:
+        #         last_projected_scan_timeshift = deepcopy(self.last_projected_stable_scan)
+        #         last_projected_scan_timeshift.header.stamp = msg.header.stamp
+        #         self.scan_in_base_link = self.tf_listener.transformPointCloud("base_link", last_projected_scan_timeshift)
 
-            self.update_particles_with_laser(msg)   # update based on laser scan
-            self.update_robot_pose(msg.header.stamp)                # update robot's pose
-            self.resample_particles()               # resample particles to focus on areas of high density
-        # publish particles (so things like rviz can see them)
+        #     self.update_particles_with_laser(msg)   # update based on laser scan
+        #     self.update_robot_pose(msg.header.stamp)                # update robot's pose
+        #     self.resample_particles()               # resample particles to focus on areas of high density
+        # # publish particles (so things like rviz can see them)
         self.publish_particles(msg)
+
 
 if __name__ == '__main__':
     myFilter = ParticleFilter()
-    r = rospy.Rate(20)
+    r = rospy.Rate(5)
     
 
     while not(rospy.is_shutdown()):

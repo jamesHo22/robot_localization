@@ -83,7 +83,7 @@ if __name__ == '__main__':
     myFilter.particle_cloud = myCloud.particles
     myFilter.publish_particles("publish")
     print(myFilter.particle_cloud[0].x)
-    r = rospy.Rate(5)
+    r = rospy.Rate(50)
 
     while not(rospy.is_shutdown()):
         # in the main loop all we do is continuously broadcast the latest map to odom transform

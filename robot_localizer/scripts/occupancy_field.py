@@ -6,6 +6,7 @@ import rospy
 from nav_msgs.srv import GetMap
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+import helper
 
 
 class OccupancyField(object):
