@@ -97,7 +97,7 @@ class ParticleFilter:
         self.occupancy_field = OccupancyField()
 
 
-        self.n_particles = 5        # the number of particles to use
+        self.n_particles = 30       # the number of particles to use
 
         self.d_thresh = 0.0             # the amount of linear movement before performing an update
         self.a_thresh = 0 # math.pi/6       # the amount of angular movement before performing an update
@@ -186,25 +186,23 @@ class ParticleFilter:
         pass
 
 
-    def weight_particles(self, scan):
-        # grab all the lidar points
-        # translate and rotate them to each particle
-        # evaluate the occupancy field for each lidar point for each particle
-        # Sum and normalize all the weights
-        # return array of weights for each particle
-        for i in range(len(scan)):
-            print(self.occupancy_field.get_closest_obstacle_distance(scan[0], scan[1]))
-
-
-
     def resample_particles(self):
         """ Resample the particles according to the new particle weights.
             The weights stored with each particle should define the probability that a particular
             particle is selected in the resampling step.  You may want to make use of the given helper
             function draw_random_sample.
         """
+
+        particles = np.random.choice(a=self.particle_cloud, size=(self.n_particles, 1, 1), p=self.weightsNorm)
+        reshapedParticle = np.array(particles).reshape((len(particles)))
+        # print(len(reshapedParticle))
+        self.particle_cloud = reshapedParticle
+        print(self.particle_cloud[28].x)
+        self.publish_particles("publishing")
+        
+        # print(particles)
         # make sure the distribution is normalized
-        self.normalize_particles()
+        #self.normalize_particles()
         # TODO: fill out the rest of the implementation
 
     def update_particles_with_laser(self, msg):
@@ -297,7 +295,7 @@ class ParticleFilter:
             # wait for initialization to complete
             return
 
-        self.tf_listener.waitForTransform(self.base_frame, self.odom_frame, msg.header.stamp, rospy.Duration(0.5))
+        self.tf_listener.waitForTransform(self.base_frame, self.odom_frame, msg.header.stamp, rospy.Duration(2))
 
         if not(self.tf_listener.canTransform(self.base_frame, msg.header.frame_id, msg.header.stamp)):
             # need to know how to transform the laser to the base frame
@@ -332,9 +330,9 @@ class ParticleFilter:
         da = delta[2] #+  np.random.normal(delta[2], scale=0.8)  # update based on odometry, returns the delta to move the particles
         # print(delta)
         for i in range(len(self.particle_cloud)):
-            self.particle_cloud[i].x += dx #+ np.random.normal(0, 0.1)
-            self.particle_cloud[i].y += dy #+ np.random.normal(0, 0.1)
-            self.particle_cloud[i].theta += da #+ np.random.normal(0, 0.1)
+            self.particle_cloud[i].x += dx + np.random.normal(0, 0.05)
+            self.particle_cloud[i].y += dy + np.random.normal(0, 0.05)
+            self.particle_cloud[i].theta += da + np.random.normal(0, 0.002)
         
         if not self.current_odom_xy_theta:
             self.current_odom_xy_theta = new_odom_xy_theta
@@ -342,7 +340,7 @@ class ParticleFilter:
             return
             
 
-        if not(self.particle_cloud):
+        if not(list(self.particle_cloud)):
             # now that we have all of the necessary transforms we can update the particle cloud
             print("no cloud")
             self.initialize_particle_cloud(msg.header.stamp)
@@ -360,22 +358,36 @@ class ParticleFilter:
             scan = self.scan_in_base_link.points # geometry_msgs.msg._Point.Point
             
         myMarkerArray = MarkerArray()    
-
+        weights = []
         for i in range(len(self.particle_cloud)):
             # particles are in odom frame. Current scan is in base_link frame. 
             # Need to transform scan to odom frame, then transform them to each particle
             particle_pose = (self.particle_cloud[i].x, self.particle_cloud[i].y, self.particle_cloud[i].theta)
-            
+
+            # for each point in the scan, visualize each one and calculate point's distance to the map
+            distances = 0
             for j in range(len(scan)):
-                print(len(scan))
+                
                 transformedScan = self.transform_scan([scan[j].x, scan[j].y], particle_pose)
                 # calculate weight for each particle
+                distances += self.occupancy_field.get_closest_obstacle_distance(transformedScan[0], transformedScan[1])
                 
                 marker = helper.create_marker(self.odom_frame, f"translated_scan_{i},{j}", transformedScan[0], transformedScan[1])
                 myMarkerArray.markers.append(marker)
-
-            # visualizes the marker array (lidar points for all particles)
+            weights.append(distances/len(scan))
             # self.visualize_particle_scan(myMarkerArray)
+        weights = np.nan_to_num(weights, nan = 0.0001) 
+        #print(self.particle_cloud)
+        sumWeights = np.sum(weights)
+        self.weightsNorm = np.array(weights)/sumWeights
+        print("Resampling")
+        self.resample_particles()
+        self.publish_particles(msg)
+        
+        # self.resample_particles()
+        
+            # visualizes the marker array (lidar points for all particles)
+            
            
 
         # self.update_particles_with_laser(msg)   # update based on laser scan
@@ -396,7 +408,7 @@ class ParticleFilter:
         #     self.update_robot_pose(msg.header.stamp)                # update robot's pose
         #     self.resample_particles()               # resample particles to focus on areas of high density
         # # publish particles (so things like rviz can see them)
-        self.publish_particles(msg)
+        
 
 
 if __name__ == '__main__':
