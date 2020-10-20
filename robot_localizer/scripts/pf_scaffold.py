@@ -97,7 +97,7 @@ class ParticleFilter:
         self.occupancy_field = OccupancyField()
 
 
-        self.n_particles = 30       # the number of particles to use
+        self.n_particles = 100       # the number of particles to use
 
         self.d_thresh = 0.0             # the amount of linear movement before performing an update
         self.a_thresh = 0 # math.pi/6       # the amount of angular movement before performing an update
@@ -193,12 +193,10 @@ class ParticleFilter:
             function draw_random_sample.
         """
 
-        particles = np.random.choice(a=self.particle_cloud, size=(self.n_particles, 1, 1), p=self.weightsNorm)
-        reshapedParticle = np.array(particles).reshape((len(particles)))
-        # print(len(reshapedParticle))
-        self.particle_cloud = reshapedParticle
-        print(self.particle_cloud[28].x)
-        self.publish_particles("publishing")
+        # particles = np.random.choice(a=self.particle_cloud, size=(self.n_particles, 1, 1), p=self.weightsNorm)
+        self.particle_cloud = self.draw_random_sample(self.particle_cloud, self.weightsNorm, self.n_particles)
+        
+        # self.publish_particles("publishing")
         
         # print(particles)
         # make sure the distribution is normalized
