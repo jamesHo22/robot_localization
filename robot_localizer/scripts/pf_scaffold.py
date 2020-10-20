@@ -59,6 +59,9 @@ class Particle(object):
 
     # TODO: define additional helper functions if needed
 
+
+
+
 class ParticleFilter:
     """ The class that represents a Particle Filter ROS Node
         Attributes list:
@@ -192,14 +195,20 @@ class ParticleFilter:
             particle is selected in the resampling step.  You may want to make use of the given helper
             function draw_random_sample.
         """
-
-        particles = np.random.choice(a=self.particle_cloud, size=(self.n_particles, 1, 1), p=self.weightsNorm)
-        reshapedParticle = np.array(particles).reshape((len(particles)))
-        # print(len(reshapedParticle))
-        self.particle_cloud = reshapedParticle
-        print(self.particle_cloud[28].x)
-        self.publish_particles("publishing")
+        try:
+            particles = np.random.choice(a=self.particle_cloud, size=(self.n_particles, 1, 1), p=self.weightsNorm)
+            reshapedParticle = np.array(particles).reshape((len(particles)))
+            copiedParticles = []
+            for i in reshapedParticle:
+                copiedParticles.append(deepcopy(i))
         
+            # print(len(reshapedParticle))
+            self.particle_cloud = copiedParticles
+            print(self.particle_cloud[28].x)
+            self.publish_particles("publishing")
+        except ValueError:
+            pass
+            
         # print(particles)
         # make sure the distribution is normalized
         #self.normalize_particles()
@@ -264,7 +273,7 @@ class ParticleFilter:
         # actually send the message so that we can view it in rviz
         
         self.particle_pub.publish(PoseArray(header=Header(stamp=rospy.Time.now(),
-                                            frame_id=self.odom_frame),
+                                            frame_id=self.map_frame),
                                   poses=particles_conv))
 
     def transform_scan(self, point, shift):
@@ -295,7 +304,7 @@ class ParticleFilter:
             # wait for initialization to complete
             return
 
-        self.tf_listener.waitForTransform(self.base_frame, self.odom_frame, msg.header.stamp, rospy.Duration(2))
+        #self.tf_listener.waitForTransform(self.base_frame, self.odom_frame, msg.header.stamp, rospy.Duration(2))
 
         if not(self.tf_listener.canTransform(self.base_frame, msg.header.frame_id, msg.header.stamp)):
             # need to know how to transform the laser to the base frame
