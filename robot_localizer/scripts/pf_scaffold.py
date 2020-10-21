@@ -14,7 +14,7 @@ from copy import deepcopy
 import tf
 from tf import TransformListener
 from tf import TransformBroadcaster
-from tf.transformations import euler_from_quaternion, rotation_matrix, quaternion_from_matrix
+from tf.transformations import euler_from_quaternion, rotation_matrix, quaternion_from_matrix, quaternion_from_euler
 from random import gauss
 
 import math
@@ -100,7 +100,7 @@ class ParticleFilter:
         self.occupancy_field = OccupancyField()
 
 
-        self.n_particles = 50      # the number of particles to use
+        self.n_particles = 3      # the number of particles to use
 
         self.d_thresh = 0.0             # the amount of linear movement before performing an update
         self.a_thresh = 0 # math.pi/6       # the amount of angular movement before performing an update
@@ -135,6 +135,7 @@ class ParticleFilter:
         self.current_odom_xy_theta = []
         self.occupancy_field = OccupancyField()
         self.transform_helper = TFHelper()
+        self.avgPose = np.array([0,0,0]).astype(float)
         self.initialized = True
         print("Init")
 
@@ -146,11 +147,20 @@ class ParticleFilter:
                 (2): compute the most likely pose (i.e. the mode of the distribution)
         """
         # first make sure that the particle weights are normalized
-        self.normalize_particles()
+        # self.normalize_particles()
+        avgQuatern = quaternion_from_euler(0, 0, self.avgPose[2])
+        
+
+        self.robot_pose = Pose(position=Point(x=self.avgPose[0],
+                                   y=self.avgPose[1],
+                                   z=0),
+                    orientation= Quaternion(x=avgQuatern[0], y=avgQuatern[1], z=avgQuatern[2], w=avgQuatern[3]))
+
+        print(self.robot_pose)
 
         # TODO: assign the latest pose into self.robot_pose as a geometry_msgs.Pose object
         # just to get started we will fix the robot's pose to always be at the origin
-        self.robot_pose = Pose()
+        # self.robot_pose = Pose()
 
         self.transform_helper.fix_map_to_odom_transform(self.robot_pose, timestamp)
 
@@ -322,12 +332,12 @@ class ParticleFilter:
         # calculate pose of laser relative to the robot base
         p = PoseStamped(header=Header(stamp=rospy.Time(0),
                                       frame_id=msg.header.frame_id))
+
         self.laser_pose = self.tf_listener.transformPose(self.base_frame, p)
 
         # find out where the robot thinks it is based on its odometry
-        p = PoseStamped(header=Header(stamp=msg.header.stamp,
-                                      frame_id=self.base_frame),
-                        pose=Pose())
+        p = PoseStamped(header=Header(stamp=msg.header.stamp, frame_id=self.base_frame) ,pose=Pose())
+        
         self.odom_pose = self.tf_listener.transformPose(self.odom_frame, p)
         # store the the odometry pose in a more convenient format (x,y,theta)
         new_odom_xy_theta = self.transform_helper.convert_pose_to_xy_and_theta(self.odom_pose.pose)
@@ -338,9 +348,9 @@ class ParticleFilter:
         da = delta[2] #+  np.random.normal(delta[2], scale=0.8)  # update based on odometry, returns the delta to move the particles
         # print(delta)
         for i in range(len(self.particle_cloud)):
-            self.particle_cloud[i].x += dx + np.random.normal(0, 0.1)
-            self.particle_cloud[i].y += dy + np.random.normal(0, 0.1)
-            self.particle_cloud[i].theta += da + np.random.normal(0, 0.1)
+            self.particle_cloud[i].x += dx #+ np.random.normal(0, 0.1)
+            self.particle_cloud[i].y += dy #+ np.random.normal(0, 0.1)
+            self.particle_cloud[i].theta += da #+ np.random.normal(0, 0.1)
         
         if not self.current_odom_xy_theta:
             self.current_odom_xy_theta = new_odom_xy_theta
@@ -357,7 +367,7 @@ class ParticleFilter:
         # weight each particle
         # use the normal scan
         # lidar_scan = np.array(msg.ranges)
-        # self.update_robot_pose(msg.header.stamp) 
+        self.update_robot_pose(msg.header.stamp) 
 
         if self.last_projected_stable_scan:
             last_projected_scan_timeshift = deepcopy(self.last_projected_stable_scan)
@@ -381,11 +391,11 @@ class ParticleFilter:
                 # calculate weight for each particle
                 distances += self.occupancy_field.get_closest_obstacle_distance(transformedScan[0], transformedScan[1])
                 marker = helper.create_marker(self.odom_frame, f"translated_scan_{i},{j}", transformedScan[0], transformedScan[1])
-                #myMarkerArray.markers.append(marker)
+                myMarkerArray.markers.append(marker)
             weights.append(distances/len(scan))
-            #self.visualize_particle_scan(myMarkerArray)
-        avgPose = avgPose/self.n_particles
-        self.visualize_particle_scan([helper.create_marker(self.map_frame, "average", avgPose[0], avgPose[1])])
+            self.visualize_particle_scan(myMarkerArray)
+        self.avgPose = avgPose/self.n_particles
+        # self.visualize_particle_scan([helper.create_marker(self.map_frame, "average", avgPose[0], avgPose[1])])
         weights = np.nan_to_num(weights, nan = .001) 
         #print(self.particle_cloud)
         sumWeights = np.sum(weights)
