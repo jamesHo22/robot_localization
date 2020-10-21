@@ -17,6 +17,7 @@ Each particle is given a weight based on the likelihood of the robot having that
 <p align="center">
   <img width="1300" height="400" src="robot_localizer/bags/visualizingScans.gif">
  The superimposed lidar scan of a single particle can be seen here in green. 
+  
 ### Resampling Particles
 Resample the same number of particles based on the normalized weights using numpy’s ‘’’random.choice()’’’ function. Each resampling step we resampled all particles based on their normalized weights. 
 ## Notable Design Decision
