@@ -100,7 +100,7 @@ class ParticleFilter:
         self.occupancy_field = OccupancyField()
 
 
-        self.n_particles = 50      # the number of particles to use
+        self.n_particles = 300      # the number of particles to use
 
         self.d_thresh = 0.002            # the amount of linear movement before performing an update
         self.a_thresh = np.pi/6       # the amount of angular movement before performing an update
@@ -218,7 +218,7 @@ class ParticleFilter:
         
             # print(len(reshapedParticle))
             self.particle_cloud = copiedParticles
-            self.publish_particles("publishing")
+            # self.publish_particles("publishing")
         except ValueError:
             pass
             
@@ -317,7 +317,7 @@ class ParticleFilter:
             # wait for initialization to complete
             return
 
-        # self.tf_listener.waitForTransform(self.base_frame, self.odom_frame, msg.header.stamp, rospy.Duration(2))
+        self.tf_listener.waitForTransform(self.base_frame, self.odom_frame, msg.header.stamp, rospy.Duration(2))
 
         if not(self.tf_listener.canTransform(self.base_frame, msg.header.frame_id, msg.header.stamp)):
             # need to know how to transform the laser to the base frame
@@ -353,7 +353,7 @@ class ParticleFilter:
         da = delta[2] #+  np.random.normal(delta[2], scale=0.8)  # update based on odometry, returns the delta to move the particles
         # print(delta)
         dist = (dx**2 + dy**2)**0.5
-        theta_1 = math.atan2(dx, dy)
+        
 
         if math.fabs(dx) >= self.d_thresh or math.fabs(dy) >= self.d_thresh or math.fabs(da) >= self.a_thresh:
             for i in range(len(self.particle_cloud)):
@@ -394,7 +394,7 @@ class ParticleFilter:
             # avgPose += np.array([particle_pose]).reshape((3))
             # for each point in the scan, visualize each one and calculate point's distance to the map
             distances = 0
-            for j in range(len(scan)):
+            for j in range(0, len(scan), 10):
                 
                 transformedScan = self.transform_scan([scan[j].x, scan[j].y], particle_pose)
                 # calculate weight for each particle
