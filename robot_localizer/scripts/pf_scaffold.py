@@ -100,10 +100,10 @@ class ParticleFilter:
         self.occupancy_field = OccupancyField()
 
 
-        self.n_particles = 30      # the number of particles to use
+        self.n_particles = 50      # the number of particles to use
 
-        self.d_thresh = 0.0             # the amount of linear movement before performing an update
-        self.a_thresh = 0 # math.pi/6       # the amount of angular movement before performing an update
+        self.d_thresh = 0.002            # the amount of linear movement before performing an update
+        self.a_thresh = np.pi/6       # the amount of angular movement before performing an update
 
         self.laser_max_distance = 2.0   # maximum penalty to assess in the likelihood field model
 
@@ -355,10 +355,11 @@ class ParticleFilter:
         dist = (dx**2 + dy**2)**0.5
         theta_1 = math.atan2(dx, dy)
 
-        for i in range(len(self.particle_cloud)):
-            self.particle_cloud[i].x += dist*np.cos(self.particle_cloud[i].theta) + np.random.normal(0, 0.1)
-            self.particle_cloud[i].y += dist*np.sin(self.particle_cloud[i].theta) + np.random.normal(0, 0.1)
-            self.particle_cloud[i].theta += da + np.random.normal(0, 0.05)
+        if math.fabs(dx) >= self.d_thresh or math.fabs(dy) >= self.d_thresh or math.fabs(da) >= self.a_thresh:
+            for i in range(len(self.particle_cloud)):
+                self.particle_cloud[i].x += dist*np.cos(self.particle_cloud[i].theta) + np.random.normal(0, 0.05)
+                self.particle_cloud[i].y += dist*np.sin(self.particle_cloud[i].theta) + np.random.normal(0, 0.05)
+                self.particle_cloud[i].theta += da + np.random.normal(0, 0.05)
         
         if not self.current_odom_xy_theta:
             self.current_odom_xy_theta = new_odom_xy_theta
@@ -435,20 +436,21 @@ class ParticleFilter:
         # self.update_robot_pose(msg.header.stamp)                # update robot's pose
         # self.resample_particles()    
 
-        # elif (math.fabs(new_odom_xy_theta[0] - self.current_odom_xy_theta[0]) > self.d_thresh or
+        # if (math.fabs(new_odom_xy_theta[0] - self.current_odom_xy_theta[0]) > self.d_thresh or
         #       math.fabs(new_odom_xy_theta[1] - self.current_odom_xy_theta[1]) > self.d_thresh or
         #       math.fabs(new_odom_xy_theta[2] - self.current_odom_xy_theta[2]) > self.a_thresh):
+
         #     print("elif passed")
             
-        #     if self.last_projected_stable_scan:
-        #         last_projected_scan_timeshift = deepcopy(self.last_projected_stable_scan)
-        #         last_projected_scan_timeshift.header.stamp = msg.header.stamp
-        #         self.scan_in_base_link = self.tf_listener.transformPointCloud("base_link", last_projected_scan_timeshift)
+            # if self.last_projected_stable_scan:
+            #     last_projected_scan_timeshift = deepcopy(self.last_projected_stable_scan)
+            #     last_projected_scan_timeshift.header.stamp = msg.header.stamp
+            #     self.scan_in_base_link = self.tf_listener.transformPointCloud("base_link", last_projected_scan_timeshift)
 
-        #     self.update_particles_with_laser(msg)   # update based on laser scan
-        #     self.update_robot_pose(msg.header.stamp)                # update robot's pose
-        #     self.resample_particles()               # resample particles to focus on areas of high density
-        # # publish particles (so things like rviz can see them)
+            # self.update_particles_with_laser(msg)   # update based on laser scan
+            # self.update_robot_pose(msg.header.stamp)                # update robot's pose
+            # self.resample_particles()               # resample particles to focus on areas of high density
+        # publish particles (so things like rviz can see them)
         
 
 
