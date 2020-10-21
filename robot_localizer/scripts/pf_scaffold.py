@@ -100,7 +100,7 @@ class ParticleFilter:
         self.occupancy_field = OccupancyField()
 
 
-        self.n_particles = 30       # the number of particles to use
+        self.n_particles = 50      # the number of particles to use
 
         self.d_thresh = 0.0             # the amount of linear movement before performing an update
         self.a_thresh = 0 # math.pi/6       # the amount of angular movement before performing an update
@@ -204,7 +204,6 @@ class ParticleFilter:
         
             # print(len(reshapedParticle))
             self.particle_cloud = copiedParticles
-            print(self.particle_cloud[28].x)
             self.publish_particles("publishing")
         except ValueError:
             pass
@@ -339,9 +338,9 @@ class ParticleFilter:
         da = delta[2] #+  np.random.normal(delta[2], scale=0.8)  # update based on odometry, returns the delta to move the particles
         # print(delta)
         for i in range(len(self.particle_cloud)):
-            self.particle_cloud[i].x += dx + np.random.normal(0, 0.05)
-            self.particle_cloud[i].y += dy + np.random.normal(0, 0.05)
-            self.particle_cloud[i].theta += da + np.random.normal(0, 0.002)
+            self.particle_cloud[i].x += dx + np.random.normal(0, 0.1)
+            self.particle_cloud[i].y += dy + np.random.normal(0, 0.1)
+            self.particle_cloud[i].theta += da + np.random.normal(0, 0.1)
         
         if not self.current_odom_xy_theta:
             self.current_odom_xy_theta = new_odom_xy_theta
@@ -368,11 +367,12 @@ class ParticleFilter:
             
         myMarkerArray = MarkerArray()    
         weights = []
+        avgPose = np.array([0,0,0]).astype(float)
         for i in range(len(self.particle_cloud)):
             # particles are in odom frame. Current scan is in base_link frame. 
             # Need to transform scan to odom frame, then transform them to each particle
             particle_pose = (self.particle_cloud[i].x, self.particle_cloud[i].y, self.particle_cloud[i].theta)
-
+            avgPose += np.array([particle_pose]).reshape((3))
             # for each point in the scan, visualize each one and calculate point's distance to the map
             distances = 0
             for j in range(len(scan)):
@@ -380,12 +380,13 @@ class ParticleFilter:
                 transformedScan = self.transform_scan([scan[j].x, scan[j].y], particle_pose)
                 # calculate weight for each particle
                 distances += self.occupancy_field.get_closest_obstacle_distance(transformedScan[0], transformedScan[1])
-                
                 marker = helper.create_marker(self.odom_frame, f"translated_scan_{i},{j}", transformedScan[0], transformedScan[1])
-                myMarkerArray.markers.append(marker)
+                #myMarkerArray.markers.append(marker)
             weights.append(distances/len(scan))
-            # self.visualize_particle_scan(myMarkerArray)
-        weights = np.nan_to_num(weights, nan = 0.0001) 
+            #self.visualize_particle_scan(myMarkerArray)
+        avgPose = avgPose/self.n_particles
+        self.visualize_particle_scan([helper.create_marker(self.map_frame, "average", avgPose[0], avgPose[1])])
+        weights = np.nan_to_num(weights, nan = .001) 
         #print(self.particle_cloud)
         sumWeights = np.sum(weights)
         self.weightsNorm = np.array(weights)/sumWeights
