@@ -50,15 +50,15 @@ class placeParticles():
         self.yCenter = y
         self.orientationCenter = theta
         self.n = n_particles
-        self.xCoords = np.random.normal(self.xCenter, size = self.n)
-        self.yCoords = np.random.normal(self.yCenter, size = self.n)
+        self.xCoords = np.random.normal(self.xCenter, size = self.n, scale=0.1)
+        self.yCoords = np.random.normal(self.yCenter, size = self.n, scale=0.1)
         
-        # for i in range(self.n):
-        #     particle = pf.Particle(x=self.xCoords[i], y=self.yCoords[i],theta = np.random.normal(theta, scale=0.8))
-        #     self.particles.append(particle)
         for i in range(self.n):
-            particle = pf.Particle(x=x, y=y,theta = theta)
+            particle = pf.Particle(x=self.xCoords[i], y=self.yCoords[i],theta = np.random.normal(theta, scale=0.05))
             self.particles.append(particle)
+        # for i in range(self.n):
+        #     particle = pf.Particle(x=x, y=y,theta = theta)
+        #     self.particles.append(particle)
         # print(self.particles)
         return self.particles
 
