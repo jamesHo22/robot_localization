@@ -21,9 +21,8 @@ Each particle is given a weight based on the likelihood of the robot having that
 ### Resampling Particles
 Resample the same number of particles based on the normalized weights using numpy’s ‘’’random.choice()’’’ function. Each resampling step we resampled all particles based on their normalized weights. 
 <p align="center">
-  <img width="1300" height="400" src="robot_localizer/bags/particleFilterAC109.gif">
-  Here is an example of our final implementation. It work relativelt well at first but accumulates an offset error over time, not to mention there is a lot of delay.
-  
+  <img width="1300" height="825" src="robot_localizer/bags/particleFilterAC109.gif">
+  Here is an example of our final implementation using 300 particles. It manages to maintain a pretty accurate pose estimate through out the recording. 
 ## Notable Design Decision
 We intentionally chose a simple approach when it came to determining the weights. We summed all the distances between each point to the wall to determine each particle’s weight. Instead of looking at all the scan points, we look at every 5th scan point so that the computations complete more quickly. This is a parameter we can tune. 
  
