@@ -21,7 +21,7 @@ Each particle is given a weight based on the likelihood of the robot having that
 ### Resampling Particles
 Resample the same number of particles based on the normalized weights using numpy’s ‘’’random.choice()’’’ function. Each resampling step we resampled all particles based on their normalized weights. 
 <p align="center">
-  <img width="1300" height="400" src="robot_localizer/bags/particleFilterDemo.gif">
+  <img width="1300" height="400" src="robot_localizer/bags/particleFilterAC109.gif">
   Here is an example of our final implementation. It work relativelt well at first but accumulates an offset error over time, not to mention there is a lot of delay.
   
 ## Notable Design Decision
