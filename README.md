@@ -18,13 +18,13 @@ Once the particles have been initialized they are updated based on data received
 ### Computing the Weights
 Each particle is given a weight based on the likelihood of the robot having that particular pose. In order to assess the likelihood we looked at the lidar data. We began by centering the lidar data around the particle's position, rotating it to match the particle’s orientation. From there we transformed the superimposed lidar points into the map frame. Then we were able to reference the occupancy grid and get values for each point. We arbitrarily decided to weight each particle based on the average occupancy value for the measured lidar data. We would eventually move two only use half of the lidar points in order to run more efficiently. Finally, in order to normalize the weights we divided each weight by the sum of all the weights, such that the sum of the normalized weights equalled 1.
 <p align="center">
-  <img width="1300" height="400" src="robot_localizer/bags/visualizingScans.gif">
+  <img width="1300" height="400" src="robot_localizer/bags/particleWeightsCombined.gif">
  The superimposed lidar scan of a single particle can be seen here in green. 
   
 ### Resampling Particles
 Resample the same number of particles based on the normalized weights using numpy’s ‘’’random.choice()’’’ function. Each resampling step we resampled all particles based on their normalized weights. 
 <p align="center">
-  <img width="1300" height="825" src="robot_localizer/bags/particleFilterAC109.gif">
+  <img width="1397" height="573" src="robot_localizer/bags/particleFilterAC109.gif">
   Here is an example of our final implementation using 300 particles. It manages to maintain a pretty accurate pose estimate through out the recording.
   
 ## Notable Design Decision
