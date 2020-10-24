@@ -5,13 +5,16 @@ The goal of this project was to understand the basic particle filter algorithm a
 ## Approach
 We started off by defining the four main steps of the algorithm: initialize a set of particles, move each particle by the motor command, compute the weight of each particle given the true sensor reading and particle positions, then resample the particles based on the normalized weights. We used the following methods to perform each step.
 ### Initializing Particles 
-Grab the arrow from the map frame
-Use numpy’s random.norm function to generate a list of x, y coordinates centered around our initial guess arrow. 
-Publish particles
-### Moving Particle
-Get dx and dy from the odom movement
-Compute the magnitude of the change in position of the robot in the odom frame
-Apply the changes in position and orientation to each particle
+The algorithm begins by taking an input pose from the user as an initial estimation for the robot's pose. A cloud of 400 particles are created normalized around the input pose. You can see an example of this below along with the distributions used for the initialization position and orientation. In order to calculate this noise we used NumPy's function `random.normal()`.
+<p align="center">
+  <img width="1208" height="487" src="robot_localizer/bags/InitializationDistributionsGIF.gif">
+  
+### Moving the Particles
+Once the particles have been initialized they are updated based on data received from the robot's odometry. The robot's odometry is not completely accurate, so some noise is added. This also allows for multiple particles of the same pose to diverge, preventing all of the particles to converge to the wrong pose. We decided to use a fairly small amount of noise to minimize drifting. An example of a particle drifting from the actual odometry readings based on our amounts of noise is shown below.
+
+<p align="center">
+  <img width="1208" height="487" src="robot_localizer/bags/motionModelDistribution.gif">
+  
 ### Computing the Weights
 Each particle is given a weight based on the likelihood of the robot having that particular pose. In order to assess the likelihood we looked at the lidar data. We began by centering the lidar data around the particle's position, rotating it to match the particle’s orientation. From there we transformed the superimposed lidar points into the map frame. Then we were able to reference the occupancy grid and get values for each point. We arbitrarily decided to weight each particle based on the average occupancy value for the measured lidar data. We would eventually move two only use half of the lidar points in order to run more efficiently. Finally, in order to normalize the weights we divided each weight by the sum of all the weights, such that the sum of the normalized weights equalled 1.
 <p align="center">
@@ -22,7 +25,8 @@ Each particle is given a weight based on the likelihood of the robot having that
 Resample the same number of particles based on the normalized weights using numpy’s ‘’’random.choice()’’’ function. Each resampling step we resampled all particles based on their normalized weights. 
 <p align="center">
   <img width="1300" height="825" src="robot_localizer/bags/particleFilterAC109.gif">
-  Here is an example of our final implementation using 300 particles. It manages to maintain a pretty accurate pose estimate through out the recording. 
+  Here is an example of our final implementation using 300 particles. It manages to maintain a pretty accurate pose estimate through out the recording.
+  
 ## Notable Design Decision
 We intentionally chose a simple approach when it came to determining the weights. We summed all the distances between each point to the wall to determine each particle’s weight. Instead of looking at all the scan points, we look at every 5th scan point so that the computations complete more quickly. This is a parameter we can tune. 
  
