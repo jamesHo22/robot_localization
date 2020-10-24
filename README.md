@@ -8,6 +8,9 @@ We started off by defining the four main steps of the algorithm: initialize a se
 Grab the arrow from the map frame
 Use numpy’s random.norm function to generate a list of x, y coordinates centered around our initial guess arrow. 
 Publish particles
+<p align="center">
+  <img width="400" height="400" src="robot_localizer/bags/particleInitialization.gif">
+  
 ### Moving Particle
 Get dx and dy from the odom movement
 Compute the magnitude of the change in position of the robot in the odom frame
