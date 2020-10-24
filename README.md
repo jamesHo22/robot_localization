@@ -9,7 +9,7 @@ The algorithm begins by taking an input pose from the user as an initial estimat
 <p align="center">
   <img width="1208" height="487" src="robot_localizer/bags/InitializationDistributionsGIF.gif">
   
-### Moving Particle
+### Moving the Particles
 Once the particles have been initialized they are updated based on data received from the robot's odometry. The robot's odometry is not completely accurate, so some noise is added. This also allows for multiple particles of the same pose to diverge, preventing all of the particles to converge to the wrong pose. We decided to use a fairly small amount of noise to minimize drifting. An example of a particle drifting from the actual odometry readings based on our amounts of noise is shown below.
 
 <p align="center">
