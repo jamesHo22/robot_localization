@@ -10,9 +10,8 @@ The algorithm begins by taking an input pose from the user as an initial estimat
   <img width="1208" height="487" src="robot_localizer/bags/InitializationDistributionsGIF.gif">
   
 ### Moving Particle
-Get dx and dy from the odom movement
-Compute the magnitude of the change in position of the robot in the odom frame
-Apply the changes in position and orientation to each particle
+Once the particles have been initialized they are updated based on data received from the robot's odometry. The robot's odometry is not completely accurate, so some noise is added. This also allows for multiple particles of the same pose to diverge, preventing all of the particles to converge to the wrong pose.
+
 <p align="center">
   <img width="1208" height="487" src="robot_localizer/bags/motionModelDistribution.gif">
   
