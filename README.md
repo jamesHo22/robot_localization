@@ -13,6 +13,9 @@ The algorithm begins by taking an input pose from the user as an initial estimat
 Get dx and dy from the odom movement
 Compute the magnitude of the change in position of the robot in the odom frame
 Apply the changes in position and orientation to each particle
+<p align="center">
+  <img width="1208" height="487" src="robot_localizer/bags/motionModelDistribution.gif">
+  
 ### Computing the Weights
 Each particle is given a weight based on the likelihood of the robot having that particular pose. In order to assess the likelihood we looked at the lidar data. We began by centering the lidar data around the particle's position, rotating it to match the particle’s orientation. From there we transformed the superimposed lidar points into the map frame. Then we were able to reference the occupancy grid and get values for each point. We arbitrarily decided to weight each particle based on the average occupancy value for the measured lidar data. We would eventually move two only use half of the lidar points in order to run more efficiently. Finally, in order to normalize the weights we divided each weight by the sum of all the weights, such that the sum of the normalized weights equalled 1.
 <p align="center">
