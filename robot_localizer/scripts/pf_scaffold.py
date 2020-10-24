@@ -198,13 +198,12 @@ class ParticleFilter:
             print('not updating')
         if not self.current_odom_xy_theta:
             self.current_odom_xy_theta = new_odom_xy_theta
-            # print("currentodom")
             return
             
 
         if not(list(self.particle_cloud)):
             # now that we have all of the necessary transforms we can update the particle cloud
-            # print("no cloud")
+            print("no cloud")
             self.initialize_particle_cloud(msg.header.stamp)
 
         
@@ -234,25 +233,17 @@ class ParticleFilter:
                 transformedScan = self.transform_scan([scan[j].x, scan[j].y], particle_pose)
                 # calculate weight for each particle
                 distances += self.occupancy_field.get_closest_obstacle_distance(transformedScan[0], transformedScan[1])
+                
                 #marker = helper.create_marker(self.map_frame, f"translated_scan_{i},{j}", transformedScan[0], transformedScan[1])
                 #myMarkerArray.markers.append(marker)
             weights.append(distances/len(scan))
             #self.visualize_particle_scan(myMarkerArray)
         
-        
-        # for i in range(len(self.particle_cloud)):
             
-
-
-        # self.visualize_particle_scan([helper.create_marker(self.map_frame, "average", avgPose[0], avgPose[1])])
         weights = np.nan_to_num(weights, nan = 1) 
         weights = 1-weights
-        #print(self.particle_cloud)
         sumWeights = np.sum(weights)
         self.weightsNorm = np.array(weights)/sumWeights
-        #self.weightsNorm = np.ones(len(self.weightsNorm))-self.weightsNorm 
-        print(self.weightsNorm)
-        # self.avgPose = np.average(self.particle_cloud, weights=self.weightsNorm)
         
         for i in range(len(self.particle_cloud)):
             particle_pose = (self.particle_cloud[i].x, self.particle_cloud[i].y, self.particle_cloud[i].theta)
@@ -265,33 +256,6 @@ class ParticleFilter:
             self.resample_particles()
             self.publish_particles(msg)
         
-        # self.resample_particles()
-        
-            # visualizes the marker array (lidar points for all particles)
-            
-           
-
-        # self.update_particles_with_laser(msg)   # update based on laser scan
-        # self.update_robot_pose(msg.header.stamp)                # update robot's pose
-        # self.resample_particles()    
-
-        # if (math.fabs(new_odom_xy_theta[0] - self.current_odom_xy_theta[0]) > self.d_thresh or
-        #       math.fabs(new_odom_xy_theta[1] - self.current_odom_xy_theta[1]) > self.d_thresh or
-        #       math.fabs(new_odom_xy_theta[2] - self.current_odom_xy_theta[2]) > self.a_thresh):
-
-        #     print("elif passed")
-            
-            # if self.last_projected_stable_scan:
-            #     last_projected_scan_timeshift = deepcopy(self.last_projected_stable_scan)
-            #     last_projected_scan_timeshift.header.stamp = msg.header.stamp
-            #     self.scan_in_base_link = self.tf_listener.transformPointCloud("base_link", last_projected_scan_timeshift)
-
-            # self.update_particles_with_laser(msg)   # update based on laser scan
-            # self.update_robot_pose(msg.header.stamp)                # update robot's pose
-            # self.resample_particles()               # resample particles to focus on areas of high density
-        # publish particles (so things like rviz can see them)
-        
-
     def update_robot_pose(self, timestamp):
         """ Update the estimate of the robot's pose given the updated particles.
             There are two logical methods for this:
@@ -308,13 +272,6 @@ class ParticleFilter:
                                    z=0),
                     orientation= Quaternion(x=avgQuatern[0], y=avgQuatern[1], z=avgQuatern[2], w=avgQuatern[3]))
 
-        #print(self.avgPose[0], self.avgPose[1])
-        # print(self.robot_pose)
-
-        # TODO: assign the latest pose into self.robot_pose as a geometry_msgs.Pose object
-        # just to get started we will fix the robot's pose to always be at the origin
-        # self.robot_pose = Pose()
-
         self.transform_helper.fix_map_to_odom_transform(self.robot_pose, timestamp)
 
     def projected_scan_received(self, msg):
@@ -328,11 +285,6 @@ class ParticleFilter:
 
             msg: this is not really needed to implement this, but is here just in case.
         """
-        # print("update_particles_with_odom")
-        # p = PoseStamped(header=Header(stamp=msg.header.stamp, frame_id=self.odom_frame) ,pose=self.odom_pose.pose)
-        # self.tf_listener.waitForTransform()
-        # self.map_pose = self.tf_listener.transformPose(self.map_frame, p)
-        
         new_odom_xy_theta = self.transform_helper.convert_pose_to_xy_and_theta(self.odom_pose.pose)
         # compute the change in x,y,theta since our last update
         delta = (0,0,0)
@@ -348,13 +300,6 @@ class ParticleFilter:
         
         return delta
 
-        # TODO: modify particles using delta
-
-    def map_calc_range(self,x,y,theta):
-        """ Difficulty Level 3: implement a ray tracing likelihood model... Let me know if you are interested """
-        # TODO: nothing unless you want to try this alternate likelihood model
-        pass
-
 
     def resample_particles(self):
         """ Resample the particles according to the new particle weights.
@@ -368,43 +313,13 @@ class ParticleFilter:
             copiedParticles = []
             for i in reshapedParticle:
                 copiedParticles.append(deepcopy(i))
-        
-            # print(len(reshapedParticle))
             self.particle_cloud = copiedParticles
-            # self.publish_particles("publishing")
         except ValueError:
             pass
             
-        # print(particles)
-        # make sure the distribution is normalized
-        #self.normalize_particles()
-        # TODO: fill out the rest of the implementation
-
-    def update_particles_with_laser(self, msg):
-        """ Updates the particle weights in response to the scan contained in the msg """
-        # TODO: implement this
-        pass
-
-    @staticmethod
-    def draw_random_sample(choices, probabilities, n):
-        """ Return a random sample of n elements from the set choices with the specified probabilities
-            choices: the values to sample from represented as a list
-            probabilities: the probability of selecting each element in choices represented as a list
-            n: the number of samples
-        """
-        values = np.array(range(len(choices)))
-        probs = np.array(probabilities)
-        bins = np.add.accumulate(probs)
-        inds = values[np.digitize(random_sample(n), bins)]
-        samples = []
-        for i in inds:
-            samples.append(deepcopy(choices[int(i)]))
-        return samples
-
     def update_initial_pose(self, msg):
         """ Callback function to handle re-initializing the particle filter based on a pose estimate.
             These pose estimates could be generated by another ROS Node or could come from the rviz GUI """
-        # print("Updating")
 
         xy_theta = self.transform_helper.convert_pose_to_xy_and_theta(msg.pose.pose) # convert the pose of the inital guess arrow to xy_theta
         myCloud = pp.placeParticles() # create placeParticles object
@@ -421,15 +336,9 @@ class ParticleFilter:
         if xy_theta is None:
             xy_theta = self.transform_helper.convert_pose_to_xy_and_theta(self.odom_pose.pose)
         self.particle_cloud = []
-        # TODO create particles
 
         self.normalize_particles()
         self.update_robot_pose(timestamp)
-
-    def normalize_particles(self):
-        """ Make sure the particle weights define a valid distribution (i.e. sum to 1.0) """
-        # TODO: implement this
-        pass
 
     def publish_particles(self, msg):
         # print("Published")
@@ -459,9 +368,6 @@ class ParticleFilter:
         """ Will create marker array
         """
         self.markerArrayPub.publish(markerArray)
-
-    
-
 
 if __name__ == '__main__':
     myFilter = ParticleFilter()
