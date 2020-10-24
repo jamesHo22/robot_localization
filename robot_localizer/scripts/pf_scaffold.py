@@ -135,6 +135,7 @@ class ParticleFilter:
         self.transform_helper = TFHelper()
         self.avgPose = np.array([0,0,0]).astype(float)
         self.initialized = True
+        self.startedMoving = False
         print("Init")
 
 
@@ -185,6 +186,9 @@ class ParticleFilter:
      
         if math.fabs(dx) >= self.d_thresh or math.fabs(dy) >= self.d_thresh or math.fabs(da) >= self.a_thresh:
             print('Updating')
+            if not(self.startedMoving):
+                self.startedMoving = True
+            
             for i in range(len(self.particle_cloud)):
                 self.particle_cloud[i].x += dist*np.cos(self.particle_cloud[i].theta) + np.random.normal(0, 0.01)
                 self.particle_cloud[i].y += dist*np.sin(self.particle_cloud[i].theta) + np.random.normal(0, 0.01)
@@ -257,8 +261,9 @@ class ParticleFilter:
         self.avgPose = avgPose
 
         print("Resampling")
-        self.resample_particles()
-        self.publish_particles(msg)
+        if self.startedMoving:
+            self.resample_particles()
+            self.publish_particles(msg)
         
         # self.resample_particles()
         
