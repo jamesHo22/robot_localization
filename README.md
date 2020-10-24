@@ -9,7 +9,7 @@ Grab the arrow from the map frame
 Use numpy’s random.norm function to generate a list of x, y coordinates centered around our initial guess arrow. 
 Publish particles
 <p align="center">
-  <img width="1208" height="487" src="robot_localizer/bags/initializationDistributionsGIF.gif">
+  <img width="1208" height="487" src="robot_localizer/bags/InitializationDistributionsGIF.gif">
   
 ### Moving Particle
 Get dx and dy from the odom movement
