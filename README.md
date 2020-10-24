@@ -5,9 +5,7 @@ The goal of this project was to understand the basic particle filter algorithm a
 ## Approach
 We started off by defining the four main steps of the algorithm: initialize a set of particles, move each particle by the motor command, compute the weight of each particle given the true sensor reading and particle positions, then resample the particles based on the normalized weights. We used the following methods to perform each step.
 ### Initializing Particles 
-Grab the arrow from the map frame
-Use numpy’s random.norm function to generate a list of x, y coordinates centered around our initial guess arrow. 
-Publish particles
+The algorithm begins by taking an input pose from the user as an initial estimation for the robot's pose. A cloud of 300 particles are created normalized around the input pose. You can see an example of this below along with the distributions used for the initialization position and orientation. In order to calculate this noise we used NumPy's function `random.normal()`.
 <p align="center">
   <img width="1208" height="487" src="robot_localizer/bags/InitializationDistributionsGIF.gif">
   
